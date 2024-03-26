@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = "./";
+
+package student;
+
+message Student {
+    string name = 1;
+    int32 id = 2;
+}
+
+message AddRequest {
+    Student student = 1;
+}
+
+message AddResponse {
+    bool success = 1;
+}
+
+message QueryRequest {
+    int32 id = 1;
+}
+
+message QueryByNameRequest {
+    string name = 1;
+}
+
+message DeleteRequest {
+    int32 id = 1;
+}
+
+message DeleteResponse {
+    bool success = 1;
+}
+
+service StudentService {
+    rpc Add(AddRequest) returns (AddResponse);
+    rpc Query(QueryRequest) returns (Student);
+    rpc QueryByName(QueryByNameRequest) returns (Student);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
