@@ -1,53 +1,39 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 
 	"google.golang.org/grpc"
+	"gorm.io/gorm"
 
+	"stu-info-mgr/config"
+	"stu-info-mgr/lib"
 	pb "stu-info-mgr/proto"
 )
 
 type server struct {
+	db *gorm.DB
 	pb.UnimplementedStudentServiceServer
-}
-
-var (
-	port = flag.Int("port", 50051, "The server port")
-)
-
-func (s *server) Query(ctx context.Context, req *pb.QueryRequest) (*pb.Student, error) {
-	student := &pb.Student{
-		Id:   req.Id,
-		Name: "John Doe",
-	}
-	return student, nil
-}
-func (s *server) QueryByName(ctx context.Context, req *pb.QueryByNameRequest) (*pb.Student, error) {
-	student := &pb.Student{
-		Name: req.Name,
-	}
-	return student, nil
-}
-func (s *server) Add(ctx context.Context, req *pb.AddRequest) (*pb.AddResponse, error) {
-	return &pb.AddResponse{Success: true}, nil
-}
-func (s *server) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
-	return &pb.DeleteResponse{Success: true}, nil
 }
 
 func main() {
 	flag.Parse()
+	config := lib.LoadConfig[config.Config]()
+	db := lib.NewDB(&config.DatabaseConfig, func(db *gorm.DB) error {
+		return db.AutoMigrate(&pb.Student{})
+	})
+	port := flag.Int("port", config.Server.Port, "The server port")
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterStudentServiceServer(s, &server{})
+	pb.RegisterStudentServiceServer(s, &server{
+		db: db,
+	})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

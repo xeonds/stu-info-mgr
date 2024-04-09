@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"log"
 
+	"stu-info-mgr/config"
+	"stu-info-mgr/lib"
 	pb "stu-info-mgr/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-var (
-	addr = flag.String("addr", "localhost:50051", "the address to connect to")
-)
-
 func main() {
+	config := lib.LoadConfig[config.Config]()
+	addr := flag.Int("addr", config.Server.Port, "the address to connect to")
 	flag.Parse()
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(fmt.Sprintf("localhost:%d", *addr), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -53,9 +53,10 @@ func main() {
 			// Call the AddStudent RPC
 			_, err := c.Add(ctx, &pb.AddRequest{Student: &student})
 			if err != nil {
-				log.Fatalf("failed to add student: %v", err)
+				log.Printf("failed to add student: %v", err)
+			} else {
+				fmt.Println("Student added successfully!")
 			}
-			fmt.Println("Student added successfully!")
 
 		case 2:
 			// Query student by ID
@@ -66,9 +67,10 @@ func main() {
 			// Call the GetStudentByID RPC
 			student, err := c.Query(ctx, &pb.QueryRequest{Id: studentID})
 			if err != nil {
-				log.Fatalf("failed to get student: %v", err)
+				log.Printf("failed to get student: %v", err)
+			} else {
+				fmt.Printf("Student found:\nID: %d\nName: %s\n", student.Id, student.Name)
 			}
-			fmt.Printf("Student found:\nID: %d\nName: %s\n", student.Id, student.Name)
 
 		case 3:
 			// Query student by name
@@ -79,7 +81,7 @@ func main() {
 			// Call the GetStudentByName RPC
 			student, err := c.QueryByName(ctx, &pb.QueryByNameRequest{Name: studentName})
 			if err != nil {
-				log.Fatalf("failed to get students: %v", err)
+				log.Printf("failed to get students: %v", err)
 			}
 			fmt.Printf("Students found:\n")
 			fmt.Printf("ID: %d\nName: %s\n\n", student.Id, student.Name)
@@ -91,9 +93,10 @@ func main() {
 
 			_, err := c.Delete(ctx, &pb.DeleteRequest{Id: studentID})
 			if err != nil {
-				log.Fatalf("failed to delete student: %v", err)
+				log.Printf("failed to delete student: %v", err)
+			} else {
+				fmt.Println("Student deleted successfully!")
 			}
-			fmt.Println("Student deleted successfully!")
 
 		case 5:
 			fmt.Println("Exiting...")
